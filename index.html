@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WinampEQ</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #000;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    font-family: 'Courier New', monospace;
+    user-select: none;
+    overflow: hidden;
+  }
+
+  .controls {
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(255,255,255,0.03);
+    border-bottom: 1px solid #1a1a1a;
+    flex-shrink: 0;
+  }
+
+  .controls-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .title {
+    color: #89CFF0;
+    font-size: 13px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    text-shadow: 0 0 10px rgba(137, 207, 240, 0.5);
+  }
+
+  .toggle-group {
+    display: flex;
+    gap: 6px;
+  }
+
+  .toggle-btn {
+    background: #111;
+    color: #555;
+    border: 1px solid #222;
+    padding: 3px 10px;
+    font-size: 10px;
+    font-family: 'Courier New', monospace;
+    cursor: pointer;
+    letter-spacing: 1px;
+    border-radius: 2px;
+    transition: all 0.2s;
+  }
+
+  .toggle-btn.active {
+    color: #89CFF0;
+    border-color: #89CFF0;
+    text-shadow: 0 0 6px rgba(137, 207, 240, 0.5);
+  }
+
+  .controls-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .preamp-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .preamp-label {
+    color: #444;
+    font-size: 9px;
+    letter-spacing: 1px;
+  }
+
+  .preamp-slider {
+    width: 100px;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 3px;
+    background: #222;
+    border-radius: 2px;
+    outline: none;
+  }
+
+  .preamp-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 10px;
+    height: 16px;
+    background: #89CFF0;
+    border-radius: 2px;
+    cursor: pointer;
+    box-shadow: 0 0 6px rgba(137, 207, 240, 0.4);
+  }
+
+  .preamp-value {
+    color: #89CFF0;
+    font-size: 10px;
+    min-width: 28px;
+    text-align: right;
+  }
+
+  #startBtn {
+    background: #000;
+    color: #89CFF0;
+    border: 1px solid #89CFF0;
+    padding: 4px 18px;
+    font-size: 11px;
+    font-family: 'Courier New', monospace;
+    cursor: pointer;
+    letter-spacing: 2px;
+    border-radius: 2px;
+    text-shadow: 0 0 6px rgba(137, 207, 240, 0.5);
+    transition: all 0.2s;
+  }
+
+  #startBtn:hover {
+    background: #89CFF0;
+    color: #000;
+  }
+
+  .canvas-wrap {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .canvas-wrap canvas {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Scanline overlay */
+  .canvas-wrap::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(
+      transparent,
+      transparent 3px,
+      rgba(0, 0, 0, 0.08) 3px,
+      rgba(0, 0, 0, 0.08) 6px
+    );
+    pointer-events: none;
+  }
+
+  .statusbar {
+    padding: 4px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255,255,255,0.02);
+    border-top: 1px solid #1a1a1a;
+    flex-shrink: 0;
+  }
+
+  .status-text {
+    color: #333;
+    font-size: 9px;
+    letter-spacing: 1px;
+  }
+
+  .status-text.active {
+    color: #89CFF0;
+    text-shadow: 0 0 4px rgba(137, 207, 240, 0.4);
+  }
+
+  .freq-labels {
+    display: flex;
+    gap: 0;
+    flex: 1;
+    justify-content: space-around;
+    margin-left: 40px;
+  }
+
+  .freq-labels span {
+    color: #333;
+    font-size: 8px;
+    letter-spacing: 1px;
+  }
+
+  .peak-indicator {
+    display: flex;
+    gap: 3px;
+    align-items: center;
+  }
+
+  .peak-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #1a1a1a;
+    transition: background 0.1s;
+  }
+
+  .peak-dot.p1 { background: #89CFF0; box-shadow: 0 0 4px rgba(137, 207, 240, 0.4); }
+  .peak-dot.p2 { background: #00ff64; box-shadow: 0 0 4px rgba(0, 255, 100, 0.4); }
+  .peak-dot.p3 { background: #ffcc00; box-shadow: 0 0 4px rgba(255, 204, 0, 0.4); }
+  .peak-dot.p4 { background: #ff6600; box-shadow: 0 0 4px rgba(255, 102, 0, 0.4); }
+  .peak-dot.p5 { background: #ff0044; box-shadow: 0 0 4px rgba(255, 0, 68, 0.4); }
+</style>
+</head>
+<body>
+
+<div class="controls">
+  <div class="controls-left">
+    <span class="title">WinampEQ</span>
+    <div class="toggle-group">
+      <button class="toggle-btn active" data-mode="bars">BARS</button>
+      <button class="toggle-btn" data-mode="gradient">GRAD</button>
+      <button class="toggle-btn" data-mode="mirror">MIRR</button>
+    </div>
+  </div>
+  <div class="controls-right">
+    <div class="preamp-group">
+      <span class="preamp-label">GAIN</span>
+      <input type="range" class="preamp-slider" id="preamp" min="0.5" max="4" step="0.1" value="1.5">
+      <span class="preamp-value" id="preampValue">1.5x</span>
+    </div>
+    <button id="startBtn">START</button>
+  </div>
+</div>
+
+<div class="canvas-wrap">
+  <canvas id="canvas"></canvas>
+</div>
+
+<div class="statusbar">
+  <span class="status-text" id="statusText">READY</span>
+  <div class="freq-labels">
+    <span>60</span><span>170</span><span>310</span><span>600</span>
+    <span>1K</span><span>3K</span><span>6K</span><span>12K</span><span>16K</span>
+  </div>
+  <div class="peak-indicator">
+    <div class="peak-dot" id="pk1"></div>
+    <div class="peak-dot" id="pk2"></div>
+    <div class="peak-dot" id="pk3"></div>
+    <div class="peak-dot" id="pk4"></div>
+    <div class="peak-dot" id="pk5"></div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const startBtn = document.getElementById('startBtn');
+const statusText = document.getElementById('statusText');
+const preampSlider = document.getElementById('preamp');
+const preampValueEl = document.getElementById('preampValue');
+
+let audioCtx, analyser, source, dataArray, animId;
+let mode = 'bars';
+let preamp = 1.5;
+let peakValues = new Float32Array(128);
+let peakDecay = new Float32Array(128);
+let running = false;
+
+// Color stops: baby blue -> green -> yellow -> orange -> red
+function barColor(ratio) {
+  if (ratio < 0.25) return '#89CFF0';  // baby blue
+  if (ratio < 0.45) return '#00ff64';  // green
+  if (ratio < 0.65) return '#ffcc00';  // yellow
+  if (ratio < 0.80) return '#ff6600';  // orange
+  return '#ff0044';                     // hot red
+}
+
+function makeGradient(height) {
+  const grad = ctx.createLinearGradient(0, height, 0, 0);
+  grad.addColorStop(0.0, '#89CFF0');
+  grad.addColorStop(0.25, '#89CFF0');
+  grad.addColorStop(0.40, '#00ff64');
+  grad.addColorStop(0.60, '#ffcc00');
+  grad.addColorStop(0.80, '#ff6600');
+  grad.addColorStop(1.0, '#ff0044');
+  return grad;
+}
+
+function resizeCanvas() {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.scale(dpr, dpr);
+  canvas.style.width = rect.width + 'px';
+  canvas.style.height = rect.height + 'px';
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+// Mode toggle
+document.querySelectorAll('.toggle-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    mode = btn.dataset.mode;
+  });
+});
+
+// Preamp
+preampSlider.addEventListener('input', () => {
+  preamp = parseFloat(preampSlider.value);
+  preampValueEl.textContent = preamp.toFixed(1) + 'x';
+});
+
+function updatePeaks() {
+  const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length * preamp;
+  document.getElementById('pk1').className = 'peak-dot' + (avg > 10 ? ' p1' : '');
+  document.getElementById('pk2').className = 'peak-dot' + (avg > 40 ? ' p2' : '');
+  document.getElementById('pk3').className = 'peak-dot' + (avg > 80 ? ' p3' : '');
+  document.getElementById('pk4').className = 'peak-dot' + (avg > 130 ? ' p4' : '');
+  document.getElementById('pk5').className = 'peak-dot' + (avg > 180 ? ' p5' : '');
+}
+
+function drawBars() {
+  const width = canvas.width / (window.devicePixelRatio || 1);
+  const height = canvas.height / (window.devicePixelRatio || 1);
+
+  ctx.clearRect(0, 0, width, height);
+
+  analyser.getByteFrequencyData(dataArray);
+
+  const barCount = 64;
+  const gap = 2;
+  const barWidth = (width - gap * (barCount + 1)) / barCount;
+  const segmentHeight = Math.max(3, Math.floor(height / 60));
+  const segmentGap = 1;
+
+  for (let i = 0; i < barCount; i++) {
+    const freqIndex = Math.floor(Math.pow(i / barCount, 1.6) * (dataArray.length * 0.55));
+    let value = dataArray[freqIndex] * preamp;
+    value = Math.min(value, 255);
+
+    const barHeight = (value / 255) * height * 0.95;
+    const x = gap + i * (barWidth + gap);
+
+    // Peak tracking
+    if (barHeight > peakValues[i]) {
+      peakValues[i] = barHeight;
+      peakDecay[i] = 0;
+    } else {
+      peakDecay[i] += 0.4;
+      peakValues[i] -= peakDecay[i];
+      if (peakValues[i] < 0) peakValues[i] = 0;
+    }
+
+    if (mode === 'bars') {
+      const segments = Math.floor(barHeight / (segmentHeight + segmentGap));
+      const totalSegments = Math.floor(height / (segmentHeight + segmentGap));
+
+      for (let s = 0; s < segments; s++) {
+        const ratio = s / totalSegments;
+        ctx.fillStyle = barColor(ratio);
+        const sy = height - s * (segmentHeight + segmentGap) - segmentHeight;
+        ctx.fillRect(x, sy, barWidth, segmentHeight);
+      }
+
+      // Peak dot
+      if (peakValues[i] > 2) {
+        const peakY = height - peakValues[i];
+        ctx.fillStyle = barColor(peakValues[i] / height);
+        ctx.shadowColor = barColor(peakValues[i] / height);
+        ctx.shadowBlur = 6;
+        ctx.fillRect(x, peakY, barWidth, 2);
+        ctx.shadowBlur = 0;
+      }
+
+    } else if (mode === 'gradient') {
+      const grad = makeGradient(height);
+      ctx.fillStyle = grad;
+      ctx.fillRect(x, height - barHeight, barWidth, barHeight);
+
+      // Glow at top
+      ctx.shadowColor = barColor(barHeight / height);
+      ctx.shadowBlur = 12;
+      ctx.fillRect(x, height - barHeight, barWidth, 2);
+      ctx.shadowBlur = 0;
+
+    } else if (mode === 'mirror') {
+      const halfH = height / 2;
+      const bh = (value / 255) * halfH * 0.9;
+
+      // Top half
+      const grad1 = ctx.createLinearGradient(0, halfH, 0, halfH - bh);
+      grad1.addColorStop(0, 'rgba(137, 207, 240, 0.15)');
+      grad1.addColorStop(0.4, '#89CFF0');
+      grad1.addColorStop(0.7, '#00ff64');
+      grad1.addColorStop(1, barColor(bh / halfH));
+      ctx.fillStyle = grad1;
+      ctx.fillRect(x, halfH - bh, barWidth, bh);
+
+      // Bottom half (reflection)
+      const grad2 = ctx.createLinearGradient(0, halfH, 0, halfH + bh);
+      grad2.addColorStop(0, 'rgba(137, 207, 240, 0.15)');
+      grad2.addColorStop(0.5, 'rgba(137, 207, 240, 0.06)');
+      grad2.addColorStop(1, 'transparent');
+      ctx.fillStyle = grad2;
+      ctx.fillRect(x, halfH, barWidth, bh);
+
+      // Center line
+      ctx.fillStyle = 'rgba(137, 207, 240, 0.2)';
+      ctx.fillRect(0, halfH - 0.5, width, 1);
+    }
+  }
+
+  updatePeaks();
+  animId = requestAnimationFrame(drawBars);
+}
+
+// Idle animation
+function drawIdle() {
+  if (running) return;
+  const width = canvas.width / (window.devicePixelRatio || 1);
+  const height = canvas.height / (window.devicePixelRatio || 1);
+
+  ctx.clearRect(0, 0, width, height);
+
+  const t = Date.now() / 1000;
+  const barCount = 64;
+  const gap = 2;
+  const barWidth = (width - gap * (barCount + 1)) / barCount;
+
+  for (let i = 0; i < barCount; i++) {
+    const h = (Math.sin(t * 1.5 + i * 0.2) + 1) * 0.1 * height;
+    const x = gap + i * (barWidth + gap);
+    ctx.fillStyle = 'rgba(137, 207, 240, 0.08)';
+    ctx.fillRect(x, height - h, barWidth, h);
+  }
+  requestAnimationFrame(drawIdle);
+}
+drawIdle();
+
+// Start/Stop
+startBtn.addEventListener('click', async () => {
+  if (running) {
+    running = false;
+    cancelAnimationFrame(animId);
+    if (source) source.disconnect();
+    if (audioCtx) audioCtx.close();
+    startBtn.textContent = 'START';
+    statusText.textContent = 'STOPPED';
+    statusText.classList.remove('active');
+    ['pk1','pk2','pk3','pk4','pk5'].forEach(id =>
+      document.getElementById(id).className = 'peak-dot'
+    );
+    drawIdle();
+    return;
+  }
+
+  try {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 2048;
+    analyser.smoothingTimeConstant = 0.82;
+
+    source = audioCtx.createMediaStreamSource(stream);
+    source.connect(analyser);
+
+    dataArray = new Uint8Array(analyser.frequencyBinCount);
+    peakValues = new Float32Array(128);
+    peakDecay = new Float32Array(128);
+
+    running = true;
+    startBtn.textContent = 'STOP';
+    statusText.textContent = 'LISTENING';
+    statusText.classList.add('active');
+
+    drawBars();
+  } catch (err) {
+    statusText.textContent = 'MIC DENIED';
+    console.error(err);
+  }
+});
+</script>
+
+</body>
+</html>
