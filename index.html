@@ -386,7 +386,7 @@
     <h2>CONNECT SPOTIFY</h2>
     <p>1. Go to developer.spotify.com/dashboard<br>
        2. Create an app<br>
-       3. Set redirect URI to: <strong style="color:#89CFF0">https://torrancejr.github.io/winamp/</strong><br>
+       3. Set redirect URI to: <strong style="color:#89CFF0">https://winamp-eq.vercel.app</strong><br>
        4. Copy your Client ID below</p>
     <input type="text" id="clientIdInput" placeholder="Paste your Spotify Client ID here">
     <div class="modal-buttons">
@@ -421,7 +421,7 @@ let smoothBars = new Float32Array(128);
 let running = false;
 
 // --- Spotify (PKCE Auth Flow) ---
-const REDIRECT_URI = 'https://torrancejr.github.io/winamp/';
+const REDIRECT_URI = 'https://winamp-eq.vercel.app';
 const SCOPES = 'user-read-currently-playing user-read-playback-state';
 let spotifyToken = null;
 let spotifyPollInterval = null;
